@@ -1,3 +1,10 @@
 #!/bin/bash
 bash /root/clash/start.sh
-sleep 604800
+
+#!/bin/bash
+
+while true
+do
+    sleep 267840
+	bash /root/clash/restart.sh
+done

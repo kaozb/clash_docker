@@ -1,20 +1,26 @@
 # docker 版
 
-git clone 
+CLASH_SECRET 端口9090的登录密码    
+CLASH_URL  订阅链接的url    
+ 
+执行启动方式    
 
-进入目录
+```
+
+docker pull admibo/clash_vpn
+docker run -id --net host -e CLASH_SECRET='password' -e CLASH_URL='https://111111111111112344.com/1111' --name clash clash_vpn
+
+```
+
+web登录控制台
+
+访问 http://【ip】:9090/ui/
+
+输入   
+- APIBaseURL   http://【ip】:9090   
+- 密码    password
+
+直接登录、配置好就可使用
 
 
-修改 clash/.env 中的
-
-登录密码、clash的订阅地址
-
-docker build -t clash_vpn .
-
-
-执行
-
-docker run -id --net host --name clash clash_vpn
-
-
-其他使用方式见 clash/readme
+其他使用方式见 [clash/README.md](./clash/README.md)     
