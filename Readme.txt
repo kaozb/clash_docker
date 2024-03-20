@@ -8,7 +8,7 @@ CLASH_URL  订阅链接的url
 ```
 
 docker pull admibo/clash_vpn
-docker run -id --net host -e CLASH_SECRET='password' -e CLASH_URL='https://111111111111112344.com/1111' --name clash clash_vpn
+docker run -id --net host -e CLASH_SECRET='password' -e CLASH_URL='https://111111111111112344.com/1111' --name clash admibo/clash_vpn
 
 ```
 
