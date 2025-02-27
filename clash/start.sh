@@ -158,22 +158,11 @@ sed -r -i '/^secret: /s@(secret: ).*@\1'${Secret}'@g' $Conf_Dir/config.yaml
 echo -e '\n正在启动Clash服务...'
 Text5="服务启动成功！"
 Text6="服务启动失败！"
-if [[ $CpuArch =~ "x86_64" || $CpuArch =~ "amd64"  ]]; then
-	nohup $Server_Dir/bin/clash-linux-amd64 -d $Conf_Dir &> $Log_Dir/clash.log &
-	ReturnStatus=$?
-	if_success $Text5 $Text6 $ReturnStatus
-elif [[ $CpuArch =~ "aarch64" ||  $CpuArch =~ "arm64" ]]; then
-	nohup $Server_Dir/bin/clash-linux-arm64 -d $Conf_Dir &> $Log_Dir/clash.log &
-	ReturnStatus=$?
-	if_success $Text5 $Text6 $ReturnStatus
-elif [[ $CpuArch =~ "armv7" ]]; then
-	nohup $Server_Dir/bin/clash-linux-armv7 -d $Conf_Dir &> $Log_Dir/clash.log &
-	ReturnStatus=$?
-	if_success $Text5 $Text6 $ReturnStatus
-else
-	echo -e "\033[31m\n[ERROR] Unsupported CPU Architecture！\033[0m"
-	exit 1
-fi
+nohup mihomo -d $Conf_Dir &> $Log_Dir/clash.log &
+ReturnStatus=$?
+if_success $Text5 $Text6 $ReturnStatus
+	
+
 
 # Output Dashboard access address and Secret
 echo ''
