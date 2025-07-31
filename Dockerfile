@@ -3,7 +3,7 @@ FROM ubuntu
 RUN apt update && apt install curl -y && rm -rf /var/cache/apt
 
 ENV SAFE_PATHS="/root/clash/dashboard/public"
-# 上述是mihomo破坏性更新，V1.19.12 出于安全考虑，restful api 中的 “path” 参数已受到限制，其目录也需要位于 workdir 或 ./configsSAFE_PATHS
+# v1.19.8上述是mihomo破坏性更新，V1.19.12 出于安全考虑，restful api 中的 “path” 参数已受到限制，其目录也需要位于 workdir 或 ./configsSAFE_PATHS
 
 RUN \
     CpuArch=$(dpkg --print-architecture) && \
