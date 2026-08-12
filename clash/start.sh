@@ -10,9 +10,9 @@ export Server_Dir=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 
 
 # 给二进制启动程序、脚本等添加可执行权限
-chmod +x $Server_Dir/bin/*
-chmod +x $Server_Dir/scripts/*
-chmod +x $Server_Dir/tools/subconverter/subconverter
+chmod +x $Server_Dir/bin/* 2>/dev/null || true
+chmod +x $Server_Dir/scripts/* 2>/dev/null || true
+chmod +x $Server_Dir/tools/subconverter/subconverter 2>/dev/null || true
 
 
 

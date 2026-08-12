@@ -49,8 +49,10 @@ PID_NUM=`ps -ef | grep [m]ihomo | wc -l`
 PID=`ps -ef | grep [m]ihomo | awk '{print $2}'`
 if [ $PID_NUM -ne 0 ]; then
 	kill -9 $PID
-  ReturnStatus=$?
+	ReturnStatus=$?
 	# ps -ef | grep [m]ihomo | awk '{print $2}' | xargs kill -9
+else
+	ReturnStatus=0
 fi
 if_success $Text1 $Text2 $ReturnStatus
 
