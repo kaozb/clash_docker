@@ -1,0 +1,30 @@
+# 日志
+*.log
+logs/
+
+# 临时文件
+temp/
+tmp/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE 配置
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# CodeBuddy 工具本地配置
+.codebuddy/
+
+# 证书与密钥
+*.pem
+*.key
+
+# 打包产物
+*.deb
+*.rpm
+*.tar.gz
+*.zip
