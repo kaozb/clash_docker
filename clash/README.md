@@ -1,25 +1,22 @@
 [TOC]
 
-# 项目介绍
+# 服务器裸机部署（非 Docker）
 
-此项目是通过使用开源项目[clash](https://github.com/Dreamacro/clash)作为核心程序，再结合脚本实现简单的代理功能。
+> 本文档适用于**不使用 Docker**、直接在 Linux 服务器上运行脚本的部署方式。
+> 若使用 Docker，请返回上级目录阅读 **[../README.md](../README.md)**。
 
-主要是为了解决我们在服务器上下载GitHub等一些国外资源速度慢的问题。
+此项目以开源项目 [mihomo（Clash.Meta）](https://github.com/MetaCubeX/mihomo) 作为核心程序，结合脚本实现简单的代理功能，主要用于解决服务器访问 GitHub 等境外资源速度慢的问题。管理面板使用 [zashboard](https://github.com/Zephyruso/zashboard)。
 
 <br>
 
 # 使用须知
 
-- 运行本项目建议使用root用户，或者使用 sudo 提权。
-- 使用过程中如遇到问题，请优先查已有的 [issues](https://github.com/wanhebin/clash-for-linux/issues)。
-- 在进行issues提交前，请替换提交内容中是敏感信息（例如：订阅地址）。
-- 本项目是基于 [clash](https://github.com/Dreamacro/clash) 、[yacd](https://github.com/haishanh/yacd) 进行的配置整合，关于clash、yacd的详细配置请去原项目查看。
-- 此项目不提供任何订阅信息，请自行准备Clash订阅地址。
-- 运行前请手动更改`.env`文件中的`CLASH_URL`变量值，否则无法正常运行。
-- 当前在RHEL系列和Debian系列Linux系统中测试过，其他系列可能需要适当修改脚本。
-- 支持 x86_64/aarch64 平台
-
-> **注意**：当你在使用此项目时，遇到任何无法独自解决的问题请优先前往 [Issues](https://github.com/wanhebin/clash-for-linux/issues) 寻找解决方法。由于空闲时间有限，后续将不再对Issues中 “已经解答”、“已有解决方案” 的问题进行重复性的回答。
+- 运行本项目建议使用 root 用户，或使用 `sudo` 提权（透明代理 / 系统级代理需要）。
+- 本项目是基于 [mihomo](https://github.com/MetaCubeX/mihomo)、[zashboard](https://github.com/Zephyruso/zashboard)、[subconverter](https://github.com/MetaCubeX/subconverter) 进行的配置整合。
+- 此项目不提供任何订阅信息，请自行准备 Clash/Mihomo 订阅地址。
+- 运行前请手动更改 `.env` 文件中的 `CLASH_URL` 变量值，否则无法正常运行。
+- 当前在 RHEL 系列和 Debian 系列 Linux 系统中测试过，其他系列可能需要适当修改脚本。
+- 支持 x86_64 / aarch64 平台。
 
 <br>
 
@@ -90,8 +87,7 @@ $ proxy_on
 $ netstat -tln | grep -E '9090|789.'
 tcp        0      0 127.0.0.1:9090          0.0.0.0:*               LISTEN     
 tcp6       0      0 :::7890                 :::*                    LISTEN     
-tcp6       0      0 :::7891                 :::*                    LISTEN     
-tcp6       0      0 :::7892                 :::*                    LISTEN
+tcp6       0      0 :::7891                 :::*                    LISTEN
 ```
 
 - 检查环境变量
@@ -108,10 +104,18 @@ https_proxy=http://127.0.0.1:7890
 
 ## 重启程序
 
-如果需要对Clash配置进行修改，请修改 `conf/config.yaml` 文件。然后运行 `restart.sh` 脚本进行重启。
+如果需要对 Clash 配置进行修改，请修改 `conf/config.yaml` 文件，然后运行 `restart.sh` 脚本进行重启。
 
 > **注意：**
-> 重启脚本 `restart.sh` 不会更新订阅信息。
+> 重启脚本 `restart.sh` 只重启内核，**不会更新订阅信息**。
+
+如需**重新拉取订阅并刷新节点**，请运行 `reload.sh`：
+
+```bash
+$ sudo bash reload.sh
+```
+
+`reload.sh` 会重新下载订阅、重新生成配置，并以 `killall mihomo` 方式重启内核，且**保留原有 Secret**（Dashboard 登录态不中断）。
 
 <br>
 
@@ -155,7 +159,7 @@ $ proxy_off
 
 - 更多教程
 
-此 Clash Dashboard 使用的是[yacd](https://github.com/haishanh/yacd)项目，详细使用方法请移步到yacd上查询。
+此 Clash Dashboard 使用的是 [zashboard](https://github.com/Zephyruso/zashboard) 项目（Clash.Meta 生态的现代管理面板），详细使用方法请移步到其项目页面查询。
 
 
 <br>
@@ -168,4 +172,4 @@ $ proxy_off
 
    目前此项目已集成自动识别和转换clash配置文件的功能。如果依然无法使用，则需要通过自建或者第三方平台（不推荐，有泄露风险）对订阅地址转换。
    
-3. 程序日志中出现`error: unsupported rule type RULE-SET`报错，解决方法查看官方[WIKI](https://github.com/Dreamacro/clash/wiki/FAQ#error-unsupported-rule-type-rule-set)
+3. 程序日志中出现 `error: unsupported rule type RULE-SET` 报错，说明订阅使用了 mihomo 暂不直接支持的 rule 类型，通常需改为对应的 `rule-provider`（见 [mihomo 文档](https://wiki.metacubex.one/)）或移除该规则。
