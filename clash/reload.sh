@@ -97,23 +97,14 @@ awk -v s="$Secret" 'BEGIN{q="\047"} /^secret: /{print "secret: " q s q; next} {p
 echo -e '\n配置已更新，准备热重载 mihomo...'
 
 
-#################### 热重载 ####################
-PID=$(ps -ef | grep '[m]ihomo' | awk '{print $2}' | head -1)
-if [[ -n "$PID" ]]; then
-	kill -HUP "$PID"
-	ReturnStatus=$?
-	if [ $ReturnStatus -eq 0 ]; then
-		action "mihomo 热重载成功 (PID=$PID)" /bin/true
-	else
-		action "mihomo 热重载失败，尝试重启进程" /bin/false
-		kill -9 "$PID" 2>/dev/null
-		nohup mihomo -d $Conf_Dir &> $Log_Dir/clash.log &
-	fi
-else
-	echo -e '\nmihomo 未运行，直接启动...'
-	nohup mihomo -d $Conf_Dir &> $Log_Dir/clash.log &
-	ReturnStatus=$?
-	if_success "mihomo 启动成功！" "mihomo 启动失败！" $ReturnStatus
-fi
+#################### 重启 mihomo（粗鲁但可靠，避免 alpine/busybox ps 列序坑与多实例堆积） ####################
+echo -e '\n停止所有 mihomo 进程...'
+killall mihomo 2>/dev/null
+sleep 2
+
+echo -e '启动 mihomo...'
+nohup mihomo -d $Conf_Dir &> $Log_Dir/clash.log &
+ReturnStatus=$?
+if_success "mihomo 启动成功！" "mihomo 启动失败！" $ReturnStatus
 
 echo -e "\nSecret 保持不变: ${Secret}\n"
