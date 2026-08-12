@@ -10,6 +10,7 @@ RUN apk add --no-cache bash openssl curl wget ca-certificates libc6-compat && \
     case "$ARCH" in \
         x86_64)  PKG="mihomo-linux-amd64-compatible-${MIHOMO_VERSION}.gz" ;; \
         aarch64) PKG="mihomo-linux-arm64-${MIHOMO_VERSION}.gz" ;; \
+        armhf|armv6) PKG="mihomo-linux-armv6-${MIHOMO_VERSION}.gz" ;; \
         armv7)   PKG="mihomo-linux-armv7-${MIHOMO_VERSION}.gz" ;; \
         *)       PKG="mihomo-linux-armv7-${MIHOMO_VERSION}.gz" ;; \
     esac && \

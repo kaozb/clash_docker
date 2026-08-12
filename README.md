@@ -33,7 +33,7 @@
 - **热更新订阅**：内置定时任务，按周期重新拉取订阅并重启内核，**刷新节点而不改变 Secret（Dashboard 登录态保持）**。
 - **可视化控制台**：集成 zashboard，通过 `:9090/ui` 直接访问，支持节点选择、延迟测试、规则调试。
 - **GeoIP 路由**：内置 `Country.mmdb`，支持基于地理位置的规则分流。
-- **多架构镜像**：支持 `linux/amd64`、`linux/arm64`、`linux/arm/v7`。
+- **多架构镜像**：支持 `linux/amd64`、`linux/arm64`、`linux/arm/v7`、`linux/arm/v6`（armhf）。
 - **低资源占用**：实测常驻内存约 45MB，CPU 占用 < 1%。
 
 ---
@@ -121,7 +121,7 @@ clash_docker/
 | 网络模式 | 必须使用 `--net host`，代理端口才能直接暴露在宿主机 |
 | 权限 | 默认以 `root` 运行；仅用 `port`/`socks-port` 时无需额外 `cap-add`，需透明代理（`redir-port`）时才需 `NET_ADMIN` |
 | 订阅 | 自备有效的 Clash/Mihomo 订阅地址（`CLASH_URL`） |
-| 架构 | amd64 / arm64 / arm/v7 |
+| 架构 | amd64 / arm64 / arm/v7 / arm/v6 (armhf) |
 
 > **注意**：因使用 `--net host`，容器内端口即宿主机端口，请勿与宿主机上其他服务（尤其是另一个 clash 实例）的 `7890/7891/9090` 冲突。
 
@@ -302,7 +302,7 @@ docker run -d --net host -e CLASH_URL=... -e CLASH_SECRET=... admibo/clash_vpn:l
 
 ### 12.2 CI 多架构构建
 
-`.github/workflows/docker-image.yml` 通过 `docker/build-push-action` 构建并推送 `linux/amd64`、`linux/arm64`、`linux/arm/v7` 三架构镜像至 `admibo/clash_vpn`。
+`.github/workflows/docker-image.yml` 通过 `docker/build-push-action` 构建并推送 `linux/amd64`、`linux/arm64`、`linux/arm/v7`、`linux/arm/v6` 四架构镜像至 `admibo/clash_vpn`。
 
 > 建议在 CI 中使用 `github.sha` 或经过清洗的标签作为镜像 tag，避免直接把 commit message（可能含空格/特殊字符）用作 tag 导致推送失败。
 
