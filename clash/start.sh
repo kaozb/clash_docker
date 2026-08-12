@@ -151,7 +151,10 @@ cat $Temp_Dir/proxy.txt >> $Temp_Dir/config.yaml
 Work_Dir=$(cd $(dirname $0); pwd)
 Dashboard_Dir="${Work_Dir}/dashboard/public"
 sed -ri "s@^# external-ui:.*@external-ui: ${Dashboard_Dir}@g" $Conf_Dir/config.yaml
-sed -r -i '/^secret: /s@(secret: ).*@\1'${Secret}'@g' $Conf_Dir/config.yaml
+# 用 awk 注入 secret，避免 sed 把 secret 中的 & \ 当成特殊字符
+awk -v s="$Secret" 'BEGIN{q="\047"} /^secret: /{print "secret: " q s q; next} {print}' \
+	"$Conf_Dir/config.yaml" > "$Conf_Dir/config.yaml.tmp" \
+	&& \mv -f "$Conf_Dir/config.yaml.tmp" "$Conf_Dir/config.yaml"
 
 
 ## 启动Clash服务
