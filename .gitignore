@@ -28,3 +28,6 @@ Thumbs.db
 *.rpm
 *.tar.gz
 *.zip
+
+# zashboard 面板静态资源（构建期从 release 解压覆盖，不入库）
+clash/dashboard/public/

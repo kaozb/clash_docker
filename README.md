@@ -82,7 +82,7 @@ clash_docker/
 ├── Dockerfile                  # 镜像构建（alpine:3.21 + mihomo + 依赖）
 ├── .dockerignore
 ├── .gitignore
-├── Readme.txt                  # 本文档入口
+├── README.md                   # 本文档入口
 ├── endpoint.sh                 # 容器入口：启动 + 定时刷新循环
 ├── .github/workflows/
 │   └── docker-image.yml        # 多架构镜像 CI
@@ -98,17 +98,18 @@ clash_docker/
     │   └── Country.mmdb        # GeoIP 数据库
     ├── temp/
     │   ├── templete_config.yaml# 配置模板（文件名确为 templete，历史拼写）
-    │   ├── clash.yaml           # 订阅原始下载
-    │   ├── clash_config.yaml    # 转换后的标准配置
-    │   ├── config.yaml          # 拼接中间产物
-    │   └── proxy.txt            # 提取出的代理段
+    │   ├── clash.yaml           # 订阅原始下载（运行时下载）
+    │   ├── clash_config.yaml    # 转换后的标准配置（运行时生成）
+    │   ├── config.yaml          # 拼接中间产物（运行时生成）
+    │   └── proxy.txt            # 提取出的代理段（运行时生成）
     ├── scripts/
     │   ├── get_cpu_arch.sh      # 获取 CPU 架构
     │   └── clash_profile_conversion.sh  # 订阅格式检测与转换
     ├── tools/subconverter/      # subconverter 二进制与配置（仅 x86_64 转换用）
-    ├── dashboard/public/        # zashboard 静态资源（external-ui）
+    ├── dashboard/public/        # zashboard 静态资源（external-ui，构建期从 release 解压覆盖）
     └── logs/
-        └── clash.log            # mihomo 运行日志（log-level: silent，默认极小）
+        ├── clash.log            # mihomo 运行日志（log-level: silent，默认极小）
+        └── subconverter.log     # 订阅转换日志（仅触发 subconverter 转换时生成）
 ```
 
 ---
@@ -187,8 +188,14 @@ docker exec clash sh -c "pidof mihomo | wc -w"
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `MIHOMO_VERSION` | `v1.19.29` | mihomo 内核版本，构建时从 GitHub Release 拉取对应架构二进制。 |
+| `MIHOMO_VERSION` | `v1.19.31` | mihomo 内核版本，构建时从 GitHub Release 拉取对应架构二进制。 |
+| `ZASHBOARD_VERSION` | `v3.29.0` | zashboard 面板版本，构建时从 GitHub Release 拉取 `dist-no-fonts.zip` 解压到 Dashboard 目录。 |
 | `SAFE_PATHS` | `/root/clash/dashboard/public` | Dashboard 静态目录。 |
+
+> 需要人工维护的外部依赖只有两个，详见 [DEPENDENCIES.md](./DEPENDENCIES.md)：
+> 1. **mihomo 内核版本**：只改 `Dockerfile` 里的 `MIHOMO_VERSION`，GitHub Actions 流水线会自行构建并推送镜像。
+> 2. **zashboard 面板版本**：只改 `Dockerfile` 里的 `ZASHBOARD_VERSION`，构建时自动下载
+>    `dist-no-fonts.zip` 并解压到 `clash/dashboard/public/`，同样是提交后流水线自动出镜像。
 
 ---
 
@@ -302,9 +309,9 @@ docker run -d --net host -e CLASH_URL=... -e CLASH_SECRET=... admibo/clash_vpn:l
 
 ### 12.2 CI 多架构构建
 
-`.github/workflows/docker-image.yml` 通过 `docker/build-push-action` 构建并推送 `linux/amd64`、`linux/arm64`、`linux/arm/v7`、`linux/arm/v6` 四架构镜像至 `admibo/clash_vpn`。
+`.github/workflows/docker-image.yml` 在 push / PR 到 `main` 时触发，通过 `docker/build-push-action` 构建并推送 `linux/amd64`、`linux/arm64`、`linux/arm/v7`、`linux/arm/v6` 四架构镜像至 `admibo/clash_vpn`，tag 包括 `latest` 与 `${{ github.event.head_commit.message }}`。
 
-> 建议在 CI 中使用 `github.sha` 或经过清洗的标签作为镜像 tag，避免直接把 commit message（可能含空格/特殊字符）用作 tag 导致推送失败。
+> 注意：当前 CI 直接把 commit message 用作镜像 tag，若 commit message 含空格或特殊字符会导致推送失败，建议改用 `github.sha` 或经过清洗的标签。
 
 ---
 

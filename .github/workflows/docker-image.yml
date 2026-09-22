@@ -36,5 +36,5 @@ jobs:
         push: true
         tags: |
           admibo/clash_vpn:latest
-          admibo/clash_vpn:${{ github.event.head_commit.message }}
+          admibo/clash_vpn:sha-${{ github.sha }}
     
