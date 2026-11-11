@@ -1,8 +1,8 @@
 # ---------- 阶段一：下载并解压所有二进制/静态资源 ----------
 FROM alpine:3.21 AS builder
 
-ARG ZASHBOARD_VERSION="v3.29.0"
-ARG MIHOMO_VERSION="v1.19.31"
+ARG ZASHBOARD_VERSION="v3.30.0"
+ARG MIHOMO_VERSION="v1.19.34"
 
 RUN apk add --no-cache wget unzip gzip && \
     # --- zashboard 静态资源：zip 内唯一顶层目录为 dist/，解压后取其内容铺到 /out/dashboard ---
@@ -34,7 +34,7 @@ RUN apk add --no-cache wget unzip gzip && \
 FROM alpine:3.21
 
 ENV SAFE_PATHS="/root/clash/dashboard/public"
-ENV MIHOMO_VERSION="v1.19.31"
+ENV MIHOMO_VERSION="v1.19.34"
 
 # 运行时依赖：bash(脚本使用 bash 语法)、openssl(生成 secret)、
 # curl/wget(下载订阅配置)、ca-certificates(TLS)、libc6-compat(运行 glibc 二进制如 subconverter)

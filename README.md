@@ -188,8 +188,8 @@ docker exec clash sh -c "pidof mihomo | wc -w"
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `MIHOMO_VERSION` | `v1.19.31` | mihomo 内核版本，构建时从 GitHub Release 拉取对应架构二进制。 |
-| `ZASHBOARD_VERSION` | `v3.29.0` | zashboard 面板版本，构建时从 GitHub Release 拉取 `dist-no-fonts.zip` 解压到 Dashboard 目录。 |
+| `MIHOMO_VERSION` | `v1.19.34` | mihomo 内核版本，构建时从 GitHub Release 拉取对应架构二进制。 |
+| `ZASHBOARD_VERSION` | `v3.30.0` | zashboard 面板版本，构建时从 GitHub Release 拉取 `dist-no-fonts.zip` 解压到 Dashboard 目录。 |
 | `SAFE_PATHS` | `/root/clash/dashboard/public` | Dashboard 静态目录。 |
 
 > 需要人工维护的外部依赖只有两个，详见 [DEPENDENCIES.md](./DEPENDENCIES.md)：

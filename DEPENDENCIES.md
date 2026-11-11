@@ -6,7 +6,7 @@
 
 - 位置：`Dockerfile` 第一阶段（`FROM alpine AS builder`）的构建参数
   ```dockerfile
-  ARG MIHOMO_VERSION="v1.19.31"
+  ARG MIHOMO_VERSION="v1.19.34"
   ```
 - 维护方式：只改 `Dockerfile` 里的这一个变量即可。
   构建时（第一阶段）按架构拼接文件名，从 GitHub Release 下载对应二进制，
@@ -29,7 +29,7 @@
 
 - 位置：`Dockerfile` 第一阶段（`FROM alpine AS builder`）的构建参数
   ```dockerfile
-  ARG ZASHBOARD_VERSION="v3.29.0"
+  ARG ZASHBOARD_VERSION="v3.30.0"
   ```
 - 上游仓库：https://github.com/Zephyruso/zashboard
 - 维护方式：只改 `Dockerfile` 里的 `ZASHBOARD_VERSION` 这一个变量即可。
