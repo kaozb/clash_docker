@@ -54,18 +54,6 @@ if_success $Text1 $Text2 $ReturnStatus
 
 sleep 3
 
-## 获取CPU架构
-if /bin/arch &>/dev/null; then
-	CpuArch=`/bin/arch`
-elif /usr/bin/arch &>/dev/null; then
-	CpuArch=`/usr/bin/arch`
-elif /bin/uname -m &>/dev/null; then
-	CpuArch=`/bin/uname -m`
-else
-	echo -e "\033[31m\n[ERROR] Failed to obtain CPU architecture！\033[0m"
-	exit 1
-fi
-
 ## 重启启动clash服务
 Text5="服务启动成功！"
 Text6="服务启动失败！"

@@ -12,7 +12,7 @@
 # 使用须知
 
 - 运行本项目建议使用 root 用户，或使用 `sudo` 提权（透明代理 / 系统级代理需要）。
-- 本项目是基于 [mihomo](https://github.com/MetaCubeX/mihomo)、[zashboard](https://github.com/Zephyruso/zashboard)、[subconverter](https://github.com/MetaCubeX/subconverter) 进行的配置整合。
+- 本项目是基于 [mihomo](https://github.com/MetaCubeX/mihomo)、[zashboard](https://github.com/Zephyruso/zashboard) 进行的配置整合。
 - 此项目不提供任何订阅信息，请自行准备 Clash/Mihomo 订阅地址。
 - 运行前请手动更改 `.env` 文件中的 `CLASH_URL` 变量值，否则无法正常运行。
 - 当前在 RHEL 系列和 Debian 系列 Linux 系统中测试过，其他系列可能需要适当修改脚本。

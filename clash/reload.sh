@@ -71,13 +71,10 @@ action "$Text3" /bin/true
 \cp -a $Temp_Dir/clash.yaml $Temp_Dir/clash_config.yaml
 
 
-#################### 订阅格式检测与转换 ####################
-source $Server_Dir/scripts/get_cpu_arch.sh
-if [[ $CpuArch =~ "x86_64" || $CpuArch =~ "amd64" ]]; then
-	echo -e '\n判断订阅内容是否符合clash配置文件标准:'
-	bash $Server_Dir/scripts/clash_profile_conversion.sh
-	sleep 1
-fi
+#################### 订阅格式校验（所有架构统一校验，不再做格式转换） ####################
+# 校验失败直接退出：首次启动则容器退出，定时刷新则保留上一个可用配置继续服务
+bash $Server_Dir/scripts/validate_profile.sh || exit 1
+sleep 1
 
 
 #################### 重新生成 config.yaml ####################

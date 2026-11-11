@@ -37,8 +37,9 @@ ENV SAFE_PATHS="/root/clash/dashboard/public"
 ENV MIHOMO_VERSION="v1.19.34"
 
 # 运行时依赖：bash(脚本使用 bash 语法)、openssl(生成 secret)、
-# curl/wget(下载订阅配置)、ca-certificates(TLS)、libc6-compat(运行 glibc 二进制如 subconverter)
-RUN apk add --no-cache bash openssl curl wget ca-certificates libc6-compat
+# curl/wget(下载订阅配置)、ca-certificates(TLS)
+# 注：无 glibc 依赖的二进制（mihomo 为纯静态 Go 程序），无需 libc6-compat
+RUN apk add --no-cache bash openssl curl wget ca-certificates
 
 # mihomo 内核：由 builder 阶段下载解压后 COPY 进来
 COPY --from=builder /out/mihomo /usr/local/bin/mihomo
@@ -48,7 +49,9 @@ COPY --from=builder /out/mihomo /usr/local/bin/mihomo
 # 容器内通过 :9090/ui 访问。更新面板只需改 builder 阶段的 ZASHBOARD_VERSION。
 COPY --from=builder /out/dashboard/ /root/clash/dashboard/public/
 
-ADD . /root/
+# 仅拷贝运行所需文件（白名单），不把 .env（含订阅/secret）、.git、日志等带进镜像
+COPY clash/ /root/clash/
+COPY endpoint.sh /root/endpoint.sh
 
 RUN chmod +x /root/endpoint.sh
 

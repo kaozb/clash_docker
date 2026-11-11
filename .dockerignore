@@ -2,3 +2,10 @@
 .github
 .codebuddy
 *.deb
+
+# 不打进镜像：本地订阅/secret 配置（Docker 运行时用 docker run -e 或 --env-file 注入）
+clash/.env
+.env
+
+# 不打进镜像：本地构建与运行时垃圾
+*.md

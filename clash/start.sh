@@ -9,10 +9,8 @@
 export Server_Dir=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 
 
-# 给二进制启动程序、脚本等添加可执行权限
-chmod +x $Server_Dir/bin/* 2>/dev/null || true
+# 给脚本添加可执行权限
 chmod +x $Server_Dir/scripts/* 2>/dev/null || true
-chmod +x $Server_Dir/tools/subconverter/subconverter 2>/dev/null || true
 
 
 
@@ -72,17 +70,6 @@ if_success() {
 
 #################### 任务执行 ####################
 
-## 获取CPU架构信息
-# Source the script to get CPU architecture
-source $Server_Dir/scripts/get_cpu_arch.sh
-
-# Check if we obtained CPU architecture
-if [[ -z "$CpuArch" ]]; then
-	echo "Failed to obtain CPU architecture"
-	exit 1
-fi
-
-
 ## 临时取消环境变量
 unset http_proxy
 unset https_proxy
@@ -129,12 +116,10 @@ if_success $Text3 $Text4 $ReturnStatus
 \cp -a $Temp_Dir/clash.yaml $Temp_Dir/clash_config.yaml
 
 
-## 判断订阅内容是否符合clash配置文件标准，尝试转换（当前不支持对 x86_64 以外的CPU架构服务器进行clash配置文件检测和转换，此功能将在后续添加）
-if [[ $CpuArch =~ "x86_64" || $CpuArch =~ "amd64"  ]]; then
-	echo -e '\n判断订阅内容是否符合clash配置文件标准:'
-	bash $Server_Dir/scripts/clash_profile_conversion.sh
-	sleep 3
-fi
+## 判断订阅内容是否符合clash配置文件标准（所有架构统一校验，不再做格式转换）
+echo -e '\n判断订阅内容是否符合clash配置文件标准:'
+bash $Server_Dir/scripts/validate_profile.sh || exit 1
+sleep 1
 
 
 ## Clash 配置文件重新格式化及配置

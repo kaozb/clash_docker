@@ -1,6 +1,6 @@
 # Clash VPN (Docker)
 
-基于 [mihomo](https://github.com/MetaCubeX/mihomo)（Clash.Meta 内核）的 Docker 化代理网关，内置 [zashboard](https://github.com/Zephyruso/zashboard) 管理面板与 [subconverter](https://github.com/MetaCubeX/subconverter) 订阅转换能力。一条命令拉起，自动拉取订阅、转换配置并对外提供 HTTP/SOCKS 代理与可视化控制台。
+基于 [mihomo](https://github.com/MetaCubeX/mihomo)（Clash.Meta 内核）的 Docker 化代理网关，内置 [zashboard](https://github.com/Zephyruso/zashboard) 管理面板。一条命令拉起，自动拉取订阅配置并对外提供 HTTP/SOCKS 代理与可视化控制台。
 
 > 适用场景：在服务器/网关上以 `host` 网络模式运行，为局域网或本机提供全局/规则代理出口。
 
@@ -29,7 +29,7 @@
 ## 1. 功能特性
 
 - **一键部署**：单条 `docker run` 即可运行，无需手动安装依赖。
-- **自动订阅拉取与转换**：启动时自动下载订阅，识别标准 Clash 配置 / Base64 编码订阅；非标准格式在 `x86_64` 下自动调用 subconverter 转换为标准格式。
+- **自动订阅拉取与校验**：启动时自动下载订阅并校验是否为标准 Clash 配置（含 `proxies`/`proxy-groups`/`rules`），不合格直接报错退出（镜像为减小体积已移除 subconverter 转换功能，base64/非标订阅请先用外部服务转换）。
 - **热更新订阅**：内置定时任务，按周期重新拉取订阅并重启内核，**刷新节点而不改变 Secret（Dashboard 登录态保持）**。
 - **可视化控制台**：集成 zashboard，通过 `:9090/ui` 直接访问，支持节点选择、延迟测试、规则调试。
 - **GeoIP 路由**：内置 `Country.mmdb`，支持基于地理位置的规则分流。
@@ -49,10 +49,7 @@
 │       ├─ bash /root/clash/start.sh                          │
 │       │    1. 解析 CLASH_URL / CLASH_SECRET                  │
 │       │    2. curl/wget 下载订阅 → temp/clash.yaml           │
-│       │    3. 格式检测（proxies/proxy-groups/rules）         │
-│       │         ├─ 标准 → 直接使用                           │
-│       │         ├─ Base64 → 解码后再检测                     │
-│       │         └─ 非标准(x86_64) → subconverter 转换        │
+│       │    3. 校验格式（proxies/proxy-groups/rules 齐全）   │
 │       │    4. 拼接模板 + 代理段 → conf/config.yaml           │
 │       │    5. 注入 external-ui 与 secret                     │
 │       │    6. nohup mihomo -d /root/clash/conf &             │
@@ -103,13 +100,11 @@ clash_docker/
     │   ├── config.yaml          # 拼接中间产物（运行时生成）
     │   └── proxy.txt            # 提取出的代理段（运行时生成）
     ├── scripts/
-    │   ├── get_cpu_arch.sh      # 获取 CPU 架构
-    │   └── clash_profile_conversion.sh  # 订阅格式检测与转换
-    ├── tools/subconverter/      # subconverter 二进制与配置（仅 x86_64 转换用）
+    │   └── validate_profile.sh  # 订阅格式校验（proxies/proxy-groups/rules）
     ├── dashboard/public/        # zashboard 静态资源（external-ui，构建期从 release 解压覆盖）
     └── logs/
         ├── clash.log            # mihomo 运行日志（log-level: silent，默认极小）
-        └── subconverter.log     # 订阅转换日志（仅触发 subconverter 转换时生成）
+        └── clash.log           # mihomo 运行日志
 ```
 
 ---
@@ -180,7 +175,7 @@ docker exec clash sh -c "pidof mihomo | wc -w"
 
 | 变量 | 必填 | 说明 |
 |------|------|------|
-| `CLASH_URL` | ✅ | 订阅地址。脚本会下载并按需转换。 |
+| `CLASH_URL` | ✅ | 订阅地址（须为标准 Clash YAML 格式；脚本只做校验，不做格式转换）。 |
 | `CLASH_SECRET` | ⭕ | Dashboard / API 登录口令。为空时脚本自动生成随机串（每次重建容器会变）。**建议显式设置以便持久登录。** |
 | `SAFE_PATHS` | ❌ | external-ui 安全路径，镜像内已默认设置，通常无需覆盖。 |
 
@@ -326,7 +321,7 @@ docker run -d --net host -e CLASH_URL=... -e CLASH_SECRET=... admibo/clash_vpn:l
 - `--net host` 下所有实例共享宿主机端口。请确保只有一个实例使用 `7890/7891/9090`，或给不同实例分配不同端口（通过自定义模板）。
 
 **Q3：UI 里看不到代理节点**
-- 多为订阅是 Base64 编码且格式不标准。脚本已集成自动识别与 subconverter 转换（仅 x86_64）；若仍不行，需先用第三方平台把订阅转成标准 Clash 配置。
+- 多为订阅是 Base64 编码等非标格式。**本镜像不内置订阅转换**（为减小体积已移除 subconverter），请先用第三方 subconverter 服务把订阅转成标准 Clash 配置，再把转换后的地址填入 `CLASH_URL`。
 
 **Q4：日志出现 `error: unsupported rule type RULE-SET`**
 - 见 mihomo 官方 FAQ；通常需补充对应 rule-provider 配置或移除不支持的规则类型。
@@ -351,6 +346,6 @@ docker run -d --net host -e CLASH_URL=... -e CLASH_SECRET=... admibo/clash_vpn:l
 
 ## 15. 许可与免责
 
-- 本项目整合 mihomo、zashboard、subconverter 等开源项目，相关权利归各自作者所有。
+- 本项目整合 mihomo、zashboard 等开源项目，相关权利归各自作者所有。
 - 本项目**不提供任何订阅信息**，请自行准备合法合规的 Clash 订阅。
 - 使用者需遵守所在地区法律法规，因使用本项目产生的任何后果由使用者自行承担。
