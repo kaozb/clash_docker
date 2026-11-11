@@ -9,6 +9,7 @@ export Server_Dir=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 Conf_Dir="$Server_Dir/conf"
 Temp_Dir="$Server_Dir/temp"
 Log_Dir="$Server_Dir/logs"
+mkdir -p "$Conf_Dir" "$Temp_Dir" "$Log_Dir"
 
 
 #################### 通用函数 ####################

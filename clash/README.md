@@ -14,7 +14,7 @@
 - 运行本项目建议使用 root 用户，或使用 `sudo` 提权（透明代理 / 系统级代理需要）。
 - 本项目是基于 [mihomo](https://github.com/MetaCubeX/mihomo)、[zashboard](https://github.com/Zephyruso/zashboard) 进行的配置整合。
 - 此项目不提供任何订阅信息，请自行准备 Clash/Mihomo 订阅地址。
-- 运行前请手动更改 `.env` 文件中的 `CLASH_URL` 变量值，否则无法正常运行。
+- 运行前请复制 `.env.example` 为 `.env` 并更改其中的 `CLASH_URL` 变量值（`.env` 含订阅地址与密钥，已被 git 忽略、不会入库），否则无法正常运行。
 - 当前在 RHEL 系列和 Debian 系列 Linux 系统中测试过，其他系列可能需要适当修改脚本。
 - 支持 x86_64 / aarch64 平台。
 
@@ -30,10 +30,11 @@
 $ git clone https://github.com/wanhebin/clash-for-linux.git
 ```
 
-进入到项目目录，编辑`.env`文件，修改变量`CLASH_URL`的值。
+进入到项目目录，复制 `.env.example` 为 `.env`，修改变量`CLASH_URL`的值。
 
 ```bash
 $ cd clash-for-linux
+$ cp .env.example .env
 $ vim .env
 ```
 

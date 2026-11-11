@@ -9,3 +9,8 @@ clash/.env
 
 # 不打进镜像：本地构建与运行时垃圾
 *.md
+
+# 运行时目录（订阅下载产物、合并后配置、日志由脚本运行时创建）
+clash/conf/
+clash/temp/
+clash/logs/

@@ -20,6 +20,9 @@ Conf_Dir="$Server_Dir/conf"
 Temp_Dir="$Server_Dir/temp"
 Log_Dir="$Server_Dir/logs"
 
+# 运行时目录自建（运行时产物 conf/temp/logs 不入库、不进镜像构建上下文）
+mkdir -p "$Conf_Dir" "$Temp_Dir" "$Log_Dir"
+
 # 将 CLASH_URL 变量的值赋给 URL 变量，并检查 CLASH_URL 是否为空
 URL=${CLASH_URL:?Error: CLASH_URL variable is not set or empty}
 
