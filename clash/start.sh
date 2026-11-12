@@ -29,6 +29,10 @@ URL=${CLASH_URL:?Error: CLASH_URL variable is not set or empty}
 # 获取 CLASH_SECRET 值，如果不存在则生成一个随机数
 Secret=${CLASH_SECRET:-$(openssl rand -hex 32)}
 
+# 代理端口连接认证（HTTP/SOCKS5 客户端用户名密码，如 user:pass）
+# 为空则不注入，以模板/订阅中自带的 authentication 为准
+ProxyAuth=${CLASH_PROXY_AUTH:-}
+
 
 
 #################### 函数定义 ####################
@@ -143,6 +147,17 @@ sed -ri "s@^# external-ui:.*@external-ui: ${Dashboard_Dir}@g" $Conf_Dir/config.y
 awk -v s="$Secret" 'BEGIN{q="\047"} /^secret: /{print "secret: " q s q; next} {print}' \
 	"$Conf_Dir/config.yaml" > "$Conf_Dir/config.yaml.tmp" \
 	&& \mv -f "$Conf_Dir/config.yaml.tmp" "$Conf_Dir/config.yaml"
+
+# 注入代理认证：设置了 CLASH_PROXY_AUTH 时覆盖已有 authentication（连同缩进列表项一并替换），没有则追加
+if [[ -n "$ProxyAuth" ]]; then
+	if grep -q '^authentication:' "$Conf_Dir/config.yaml"; then
+		awk -v a="$ProxyAuth" 'BEGIN{q="\047"} /^authentication:/{print "authentication: " q a q; skip=1; next} /^[[:space:]]/{if(skip)next} {skip=0; print}' \
+			"$Conf_Dir/config.yaml" > "$Conf_Dir/config.yaml.tmp" \
+			&& \mv -f "$Conf_Dir/config.yaml.tmp" "$Conf_Dir/config.yaml"
+	else
+		printf "\n# 代理连接认证（由 CLASH_PROXY_AUTH 注入）\nauthentication: '%s'\n" "$ProxyAuth" >> "$Conf_Dir/config.yaml"
+	fi
+fi
 
 
 ## 启动Clash服务

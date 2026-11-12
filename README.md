@@ -47,11 +47,11 @@
 │  /bin/sh -c /root/endpoint.sh  (容器入口 / PID 1)            │
 │       │                                                      │
 │       ├─ bash /root/clash/start.sh                          │
-│       │    1. 解析 CLASH_URL / CLASH_SECRET                  │
+│       │    1. 解析 CLASH_URL / CLASH_SECRET / CLASH_PROXY_AUTH │
 │       │    2. curl/wget 下载订阅 → temp/clash.yaml           │
 │       │    3. 校验格式（proxies/proxy-groups/rules 齐全）   │
 │       │    4. 拼接模板 + 代理段 → conf/config.yaml           │
-│       │    5. 注入 external-ui 与 secret                     │
+│       │    5. 注入 external-ui、secret、authentication       │
 │       │    6. nohup mihomo -d /root/clash/conf &             │
 │       │                                                      │
 │       └─ while true; do sleep <周期>;  bash reload.sh; done  │
@@ -179,6 +179,7 @@ docker exec clash sh -c "pidof mihomo | wc -w"
 |------|------|------|
 | `CLASH_URL` | ✅ | 订阅地址（须为标准 Clash YAML 格式；脚本只做校验，不做格式转换）。 |
 | `CLASH_SECRET` | ⭕ | Dashboard / API 登录密码，详见 [6.2](#62-dashboard-登录密码clash_secret)。 |
+| `CLASH_PROXY_AUTH` | ⭕ | 代理端口连接认证（格式 `用户名:密码`），详见 [6.3](#63-代理连接密码authentication)。 |
 | `SAFE_PATHS` | ❌ | external-ui 安全路径，镜像内已默认设置，无需覆盖。 |
 
 ### 6.2 Dashboard 登录密码（`CLASH_SECRET`）
@@ -209,7 +210,31 @@ docker run -d \
 
 ### 6.3 代理连接密码（`authentication`）
 
-`7890/7891` 代理端口**默认无认证**：默认 `allow-lan: true` 且监听 `0.0.0.0`，任何能访问该端口的主机都可以直接走你的代理。给代理连接加用户名密码，需在自定义模板中配置 `authentication` 字段：
+`7890/7891` 代理端口**默认无认证**：默认 `allow-lan: true` 且监听 `0.0.0.0`，任何能访问该端口的主机都可以直接走你的代理。
+
+**方式一（推荐）：环境变量 `CLASH_PROXY_AUTH`**
+
+无需改任何文件，格式为 `用户名:密码`（冒号分隔）：
+
+```bash
+docker run -d \
+  --name clash \
+  --net host \
+  --restart unless-stopped \
+  -e CLASH_SECRET='your_secret_here' \
+  -e CLASH_PROXY_AUTH='user1:pass1' \
+  -e CLASH_URL='https://your-subscription-url/xxx' \
+  admibo/clash_vpn
+```
+
+注入行为：
+
+- 启动与每次定时刷新（`reload.sh`）都会把它写入配置的 `authentication` 字段，刷新节点不会丢认证；
+- 配置中（订阅或模板）已存在 `authentication:` 时以环境变量为准**整体覆盖**；
+- 未设置时完全不注入，保留自定义模板中的认证配置（注意：拼接时只取订阅的代理段，订阅自身的全局字段不含在内）；
+- 需要多组账号时请用方式二在模板中配置。
+
+**方式二：自定义模板中的 `authentication` 字段**（支持多组账号）：
 
 ```yaml
 # 单组用户名密码
@@ -463,7 +488,7 @@ docker run -d --net host -e CLASH_URL=... -e CLASH_SECRET=... admibo/clash_vpn:l
 ## 14. 安全说明
 
 - **以 root 运行**：容器默认 root。仅启用 `port`/`socks-port` 时并非必需，如需降权请评估透明代理（`redir-port`/`TPROXY`）对 `NET_ADMIN` 的需求。
-- **Secret 明文**：`CLASH_SECRET` 通过环境变量传入，`docker inspect` 可见。生产环境建议使用编排平台的 secret 管理机制。
+- **Secret 明文**：`CLASH_SECRET` / `CLASH_PROXY_AUTH` 通过环境变量传入，`docker inspect` 可见。生产环境建议使用编排平台的 secret 管理机制。
 - **自动重启**：示例命令使用 `--restart unless-stopped`；若遗漏，容器退出后不会被 Docker 拉起（且 mihomo 非 PID 1，其崩溃不会连带停止容器）。
 - **订阅下载 `-k`**：跳过 TLS 校验，存在中间人篡改风险，仅在订阅源证书异常时必要。
 - **外部访问**：`external-controller` 监听 `0.0.0.0:9090` 且 `allow-lan: true`，请确保 Secret 强度足够，避免 Dashboard/API 暴露到公网被未授权访问。

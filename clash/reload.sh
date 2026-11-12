@@ -36,6 +36,9 @@ if [[ -f "$Conf_Dir/config.yaml" ]]; then
 fi
 Secret=${ExistingSecret:-${CLASH_SECRET:-$(openssl rand -hex 32)}}
 
+# 代理端口连接认证（与 start.sh 同一来源：CLASH_PROXY_AUTH）
+ProxyAuth=${CLASH_PROXY_AUTH:-}
+
 # 取消可能干扰下载的代理环境变量
 unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
 
@@ -91,6 +94,17 @@ sed -ri "s@^# external-ui:.*@external-ui: ${Dashboard_Dir}@g" $Conf_Dir/config.y
 awk -v s="$Secret" 'BEGIN{q="\047"} /^secret: /{print "secret: " q s q; next} {print}' \
 	"$Conf_Dir/config.yaml" > "$Conf_Dir/config.yaml.tmp" \
 	&& \mv -f "$Conf_Dir/config.yaml.tmp" "$Conf_Dir/config.yaml"
+
+# 注入代理认证：设置了 CLASH_PROXY_AUTH 时覆盖已有 authentication（连同缩进列表项一并替换），没有则追加
+if [[ -n "$ProxyAuth" ]]; then
+	if grep -q '^authentication:' "$Conf_Dir/config.yaml"; then
+		awk -v a="$ProxyAuth" 'BEGIN{q="\047"} /^authentication:/{print "authentication: " q a q; skip=1; next} /^[[:space:]]/{if(skip)next} {skip=0; print}' \
+			"$Conf_Dir/config.yaml" > "$Conf_Dir/config.yaml.tmp" \
+			&& \mv -f "$Conf_Dir/config.yaml.tmp" "$Conf_Dir/config.yaml"
+	else
+		printf "\n# 代理连接认证（由 CLASH_PROXY_AUTH 注入）\nauthentication: '%s'\n" "$ProxyAuth" >> "$Conf_Dir/config.yaml"
+	fi
+fi
 
 echo -e '\n配置已更新，准备热重载 mihomo...'
 

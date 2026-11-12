@@ -19,8 +19,14 @@ log-level: silent
 # Clash 的 RESTful API
 external-controller: '0.0.0.0:9090'
 
-# RESTful API 的口令
-secret: 'b&ZlKTte5OnEt2Sn'
+# RESTful API 的口令（此值仅为占位：启动/刷新时由 CLASH_SECRET 环境变量自动覆盖）
+secret: ''
+
+# 代理端口（HTTP/SOCKS5）的连接认证：客户端需用户名密码才能使用代理
+# 推荐用环境变量 CLASH_PROXY_AUTH 注入（详见 README 6.3），亦可直接在此配置，如：
+# authentication:
+#   - "user1:pass1"
+#   - "user2:pass2"
 
 # 您可以将静态网页资源（如 clash-dashboard）放置在一个目录中，clash 将会服务于 `RESTful API/ui`
 # 参数应填写配置目录的相对路径或绝对路径。
