@@ -27,18 +27,19 @@
 下载项目
 
 ```bash
-$ git clone https://github.com/wanhebin/clash-for-linux.git
+$ git clone https://github.com/kaozb/clash_docker.git
 ```
 
-进入到项目目录，复制 `.env.example` 为 `.env`，修改变量`CLASH_URL`的值。
+进入项目目录，复制 `.env.example` 为 `.env`，修改变量`CLASH_URL`的值。
 
 ```bash
-$ cd clash-for-linux
+$ cd clash_docker/clash
 $ cp .env.example .env
 $ vim .env
 ```
 
-> **注意：** `.env` 文件中的变量 `CLASH_SECRET` 为自定义 Clash Secret，值为空时，脚本将自动生成随机字符串。
+> **注意：** `.env` 文件中的变量 `CLASH_SECRET` 为 Dashboard/API 登录密码，值为空时，脚本将自动生成随机字符串（每次启动都会变，建议固定）。
+> 代理端口加连接密码、修改端口等配置见上级文档 [../README.md 第 6 节](../README.md#6-配置项说明)。
 
 <br>
 
@@ -169,8 +170,6 @@ $ proxy_off
 
 1. 部分Linux系统默认的 shell `/bin/sh` 被更改为 `dash`，运行脚本会出现报错（报错内容一般会有 `-en [ OK ]`）。建议使用 `bash xxx.sh` 运行脚本。
 
-2. 部分用户在UI界面找不到代理节点，基本上是因为厂商提供的clash配置文件是经过base64编码的，且配置文件格式不符合clash配置标准。
-
-   目前此项目已集成自动识别和转换clash配置文件的功能。如果依然无法使用，则需要通过自建或者第三方平台（不推荐，有泄露风险）对订阅地址转换。
+2. 部分用户在UI界面找不到代理节点，是因为厂商提供的订阅是 base64 编码等非标格式。本项目**只校验不转换**（转换功能已移除以减小体积），请先用第三方 subconverter 服务把订阅转成标准 Clash 配置（不推荐，有泄露风险），再把转换后的地址填入 `CLASH_URL`。
    
 3. 程序日志中出现 `error: unsupported rule type RULE-SET` 报错，说明订阅使用了 mihomo 暂不直接支持的 rule 类型，通常需改为对应的 `rule-provider`（见 [mihomo 文档](https://wiki.metacubex.one/)）或移除该规则。

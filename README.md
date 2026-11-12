@@ -84,7 +84,7 @@ clash_docker/
 ├── .github/workflows/
 │   └── docker-image.yml        # 多架构镜像 CI
 └── clash/
-    ├── start.sh                # 首次启动：拉取订阅 → 转换 → 生成配置 → 拉起 mihomo
+    ├── start.sh                # 首次启动：拉取订阅 → 校验 → 生成配置 → 拉起 mihomo
     ├── reload.sh               # 定时刷新：重新拉取订阅 + 重启 mihomo（保留 Secret）
     ├── restart.sh              # 仅重启内核（不重新拉取订阅）
     ├── shutdown.sh             # 停止内核
@@ -96,15 +96,14 @@ clash_docker/
     ├── temp/
     │   ├── templete_config.yaml# 配置模板（文件名确为 templete，历史拼写）
     │   ├── clash.yaml           # 订阅原始下载（运行时下载）
-    │   ├── clash_config.yaml    # 转换后的标准配置（运行时生成）
+    │   ├── clash_config.yaml    # 订阅副本（运行时生成）
     │   ├── config.yaml          # 拼接中间产物（运行时生成）
     │   └── proxy.txt            # 提取出的代理段（运行时生成）
     ├── scripts/
     │   └── validate_profile.sh  # 订阅格式校验（proxies/proxy-groups/rules）
     ├── dashboard/public/        # zashboard 静态资源（external-ui，构建期从 release 解压覆盖）
     └── logs/
-        ├── clash.log            # mihomo 运行日志（log-level: silent，默认极小）
-        └── clash.log           # mihomo 运行日志
+        └── clash.log            # mihomo 运行日志（log-level: silent，默认极小）
 ```
 
 ---
@@ -136,6 +135,9 @@ docker run -d \
   -e CLASH_URL='https://your-subscription-url/xxx' \
   admibo/clash_vpn
 ```
+
+> 两个变量的详细用法：`CLASH_SECRET` 见 [6.2](#62-dashboard-登录密码clash_secret)；
+> 代理端口加密码、改端口见 [6.3](#63-代理连接密码authentication) / [6.4](#64-端口与监听配置)。
 
 ### 5.2 带自定义模板挂载
 
@@ -171,15 +173,140 @@ docker exec clash sh -c "pidof mihomo | wc -w"
 
 ## 6. 配置项说明
 
-### 6.1 运行时环境变量（`docker run -e`）
+### 6.1 环境变量总览（`docker run -e`）
 
 | 变量 | 必填 | 说明 |
 |------|------|------|
 | `CLASH_URL` | ✅ | 订阅地址（须为标准 Clash YAML 格式；脚本只做校验，不做格式转换）。 |
-| `CLASH_SECRET` | ⭕ | Dashboard / API 登录口令。为空时脚本自动生成随机串（每次重建容器会变）。**建议显式设置以便持久登录。** |
-| `SAFE_PATHS` | ❌ | external-ui 安全路径，镜像内已默认设置，通常无需覆盖。 |
+| `CLASH_SECRET` | ⭕ | Dashboard / API 登录密码，详见 [6.2](#62-dashboard-登录密码clash_secret)。 |
+| `SAFE_PATHS` | ❌ | external-ui 安全路径，镜像内已默认设置，无需覆盖。 |
 
-### 6.2 构建时变量（Dockerfile `ENV` / `--build-arg`）
+### 6.2 Dashboard 登录密码（`CLASH_SECRET`）
+
+`CLASH_SECRET` 是面板与 API 共用的登录口令，同时用于：
+
+- zashboard 面板登录：`http://<ip>:9090/ui`
+- RESTful API 鉴权：`curl -H "Authorization: Bearer <secret>" http://<ip>:9090/version`
+
+| 事项 | 说明 |
+|------|------|
+| 设置方式 | `docker run -e CLASH_SECRET='你的密码' ...` |
+| 不设置时 | 每次启动自动生成随机串（可在 `docker logs clash` 查看），**重建容器后会变** |
+| 建议 | 显式设置强随机串，重建容器后面板登录态不丢 |
+| 修改密码 | 停掉容器，用新 `-e CLASH_SECRET` 重新 `docker run` |
+
+```bash
+docker run -d \
+  --name clash \
+  --net host \
+  --restart unless-stopped \
+  -e CLASH_SECRET='My-Dashboard-Passw0rd' \
+  -e CLASH_URL='https://your-subscription-url/xxx' \
+  admibo/clash_vpn
+```
+
+> 定时刷新（`reload.sh`）会沿用现有 Secret，面板登录态始终不中断。
+
+### 6.3 代理连接密码（`authentication`）
+
+`7890/7891` 代理端口**默认无认证**：默认 `allow-lan: true` 且监听 `0.0.0.0`，任何能访问该端口的主机都可以直接走你的代理。给代理连接加用户名密码，需在自定义模板中配置 `authentication` 字段：
+
+```yaml
+# 单组用户名密码
+authentication:
+  - "user1:pass1"
+
+# 多组写法
+authentication:
+  - "user1:pass1"
+  - "user2:pass2"
+```
+
+配置后客户端必须携带账号密码：
+
+| 协议 | 客户端配置示例 |
+|------|----------------|
+| HTTP 代理 | `http://user1:pass1@<宿主机IP>:7890` |
+| SOCKS5 代理 | `socks5://user1:pass1@<宿主机IP>:7891` |
+
+验证（未带密码的请求应返回 `407`）：
+
+```bash
+# 带密码：应返回代理出口 IP
+curl -x http://user1:pass1@127.0.0.1:7890 https://api.ip.sb/ip
+# 不带密码：应返回 407 Proxy Authentication Required
+curl -x http://127.0.0.1:7890 https://api.ip.sb/ip
+```
+
+> 进阶：mihomo 支持 `skip-auth-prefixes: [127.0.0.0/8]`，可让指定网段（如本机）免认证直连。
+
+### 6.4 端口与监听配置
+
+默认端口一览：
+
+| 端口 | 协议 | 用途 | 默认监听 |
+|------|------|------|----------|
+| `7890` | HTTP | HTTP 代理 | `0.0.0.0`（allow-lan） |
+| `7891` | SOCKS5 | SOCKS5 代理 | `0.0.0.0` |
+| `9090` | HTTP | RESTful API + Dashboard `/ui` | `0.0.0.0` |
+| `redir-port` | — | 透明代理 | `0`（默认关闭） |
+
+修改端口需在自定义模板中设置以下字段（模板挂载方式见 [6.5](#65-模板挂载与生效时机)）：
+
+| 模板字段 | 默认值 | 说明 |
+|----------|--------|------|
+| `port` | `7890` | HTTP 代理端口，`0` 为关闭 |
+| `socks-port` | `7891` | SOCKS5 代理端口，`0` 为关闭 |
+| `mixed-port` | 未启用 | HTTP + SOCKS5 混合单端口，单端口场景推荐 |
+| `redir-port` | `0` | 透明代理端口，容器需额外 `--cap-add NET_ADMIN` |
+| `external-controller` | `'0.0.0.0:9090'` | API/面板监听地址，仅本机访问可改 `'127.0.0.1:9090'` |
+| `allow-lan` | `true` | 是否允许非本机连接代理，仅本机使用改 `false` |
+
+完整自定义模板示例（按需裁剪）：
+
+```yaml
+port: 7890                  # HTTP 代理端口
+socks-port: 7891            # SOCKS5 代理端口
+mixed-port: 7892            # 可选：混合端口
+redir-port: 0
+allow-lan: true
+mode: Rule                  # 规则分流（默认模板为 Global，多数订阅建议改 Rule）
+log-level: info
+external-controller: '0.0.0.0:9090'
+secret: 'placeholder'       # 占位即可，运行时由 CLASH_SECRET 覆盖
+authentication:             # 代理连接密码（见 6.3）
+  - "user1:pass1"
+```
+
+挂载运行：
+
+```bash
+docker run -d \
+  --name clash \
+  --net host \
+  --restart unless-stopped \
+  -e CLASH_SECRET='My-Dashboard-Passw0rd' \
+  -e CLASH_URL='https://your-subscription-url/xxx' \
+  -v /root/clash-template.yaml:/root/clash/temp/templete_config.yaml \
+  admibo/clash_vpn
+```
+
+> **⚠ 自定义模板两条红线**（脚本按行匹配注入，删行会丢功能）：
+> 1. 必须保留 `secret: ` 行（值随意）——否则 API/面板变成无密码裸奔；
+> 2. 必须保留 `# external-ui: ...` 注释行——否则面板静态资源不会挂到 `:9090/ui`，访问 404。
+>
+> **端口与 `--net host`**：容器直接监听宿主机端口，无需 `-p` 映射；模板改端口后客户端连新端口；同机跑多实例时务必把三组端口全部错开。客户端接入示例见第 8 节。
+
+### 6.5 模板挂载与生效时机
+
+1. 在宿主机准备模板文件（可复制仓库内 `clash/temp/templete_config.yaml` 修改，或参照 6.4 示例编写）；
+2. `-v /path/your_template.yaml:/root/clash/temp/templete_config.yaml` 挂载进容器；
+3. 生效时机：
+   - 新起容器：立即生效；
+   - 运行中的容器：`docker exec clash bash /root/clash/reload.sh` 立即生效，否则等下一次定时刷新；
+   - 注意 `restart.sh` 只重启内核、不重新拼接模板，改模板后请用 `reload.sh`。
+
+### 6.6 构建时变量（Dockerfile `ARG` / `ENV`）
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
@@ -210,13 +337,11 @@ secret: 'b&ZlKTte5OnEt2Sn'   # 占位，运行时会由脚本注入真实 Secret
 # external-ui: /root/clash/dashboard/public
 ```
 
-**自定义方式**
-
-1. 复制该模板到宿主机，按需修改端口/`mode`/`dns` 等；
-2. 以 `-v /path/your_template.yaml:/root/clash/temp/templete_config.yaml` 挂载进容器；
-3. 重启容器或等待下一次 `reload`，新模板即生效。
+- 各字段含义、常用改法（端口、代理认证、仅本机监听）见 **[6.4 端口与监听配置](#64-端口与监听配置)**；
+- 挂载方式与生效时机见 **[6.5 模板挂载与生效时机](#65-模板挂载与生效时机)**。
 
 > `secret` 行无需手动维护——`start.sh` / `reload.sh` 会用 `CLASH_SECRET`（或已有值）自动覆盖注入。
+> 两条红线再强调一次：`secret: ` 行与 `# external-ui:` 注释行**不可删除**（脚本按行匹配注入，删行会导致 API 裸奔或面板 404，详见 [6.4](#64-端口与监听配置)）。
 
 ---
 
@@ -232,7 +357,8 @@ secret: 'b&ZlKTte5OnEt2Sn'   # 占位，运行时会由脚本注入真实 Secret
 
 - HTTP 代理：`http://<宿主机IP>:7890`
 - SOCKS5 代理：`socks5://<宿主机IP>:7891`
-- 容器内置 `proxy_on` / `proxy_off` 函数（写入 `/etc/profile.d/clash.sh`），可在容器内一键开关系统级代理：
+- 配置了代理认证后（见 [6.3](#63-代理连接密码authentication)）：`http://user1:pass1@<宿主机IP>:7890`
+- 修改端口/仅本机监听见 [6.4](#64-端口与监听配置)；容器内置 `proxy_on` / `proxy_off` 函数（写入 `/etc/profile.d/clash.sh`），可在容器内一键开关系统级代理：
 
 ```bash
 source /etc/profile.d/clash.sh
@@ -259,7 +385,7 @@ proxy_off    # 取消导出
 
 | 脚本 | 作用 | 是否重新拉取订阅 |
 |------|------|------------------|
-| `start.sh` | 首次启动：拉订阅→转换→生成配置→拉起 mihomo | ✅ |
+| `start.sh` | 首次启动：拉订阅→校验→生成配置→拉起 mihomo | ✅ |
 | `reload.sh` | 定时刷新：重新拉订阅→生成配置→`killall mihomo`→重启（**保留 Secret**） | ✅ |
 | `restart.sh` | 仅重启内核（基于已有 `conf/config.yaml`，不更新订阅） | ❌ |
 | `shutdown.sh` | 停止内核并清理 `/etc/profile.d/clash.sh` | — |
@@ -318,7 +444,7 @@ docker run -d --net host -e CLASH_URL=... -e CLASH_SECRET=... admibo/clash_vpn:l
 - 查看 `docker logs clash` 与 `/root/clash/logs/clash.log`。
 
 **Q2：两个 clash 容器同时跑，端口疑似冲突**
-- `--net host` 下所有实例共享宿主机端口。请确保只有一个实例使用 `7890/7891/9090`，或给不同实例分配不同端口（通过自定义模板）。
+- `--net host` 下所有实例共享宿主机端口。请确保只有一个实例使用 `7890/7891/9090`，或给不同实例分配不同端口（通过自定义模板，见 [6.4](#64-端口与监听配置)）。
 
 **Q3：UI 里看不到代理节点**
 - 多为订阅是 Base64 编码等非标格式。**本镜像不内置订阅转换**（为减小体积已移除 subconverter），请先用第三方 subconverter 服务把订阅转成标准 Clash 配置，再把转换后的地址填入 `CLASH_URL`。
